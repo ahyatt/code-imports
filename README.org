@@ -1,24 +1,28 @@
 * Description
 
-=code-imports= is a module to help you manage code imports. The
+_code-imports_ is a module to help you manage code imports. The
 eventual goal is to handle all import-related logic for a variety of
 languages, so as to make developing with emacs faster.
+
+Currently, this library lets your organize your imports according to
+predefined rules, as well as grabbing files to add as import, and
+adding those imports to a destination file.
 
 This module is not designed to work with any existing module such as
 =EDE=.
 
 * Dependencies
 
-=code-imports= should work with emacs version 23 and up.  It uses the
+_code-imports_ should work with emacs version 23 and up.  It uses the
 built-in =cl= module, but it doesn't need any other module to be
 installed.
 
 * Languages
 
-Right now, =code-imports= works with:
-  - =C=
-  - =C++=
-  - =Java=
+Right now, _code-imports_ works with:
+  - _C_
+  - _C++_
+  - _Java_
 
 * Usage
 
@@ -47,16 +51,24 @@ defining a matching rule:
 
 Between each section a blank line will be inserted.
 
-In Java, =code-imports= will try and remove unused Java classes, but
+In Java, _code-imports_ will try and remove unused Java classes, but
 it may not removal all.
 
 To organize imports, run =M-x code-imports-organize-imports=.
 
 ** Adding imports
 
+The workflow for adding imports is currently simple.  Say you want to
+add an import pointing to _destination.h_ to the file _target.h_.
+Navigate to _destination.h_, and when you are in the _destination.h_
+buffer, grab the import.  Then go to _target.h_ and add the grabbed
+import, which will stick the correct include statement in the file,
+and organize your imports in that file as well.  The following
+instructions will go over how to do this in detail.
+
 *** Defining the root
 
-For =code-imports= to be able to take a file name and make an import
+For _code-imports_ to be able to take a file name and make an import
 out of it, we have to know what the root of your project is.  Store
 the root in =code-imports-project-directory=.  For example, if the
 file you want to import is stored at
@@ -87,8 +99,32 @@ want to add your imports and run =M-x
 code-imports-add-grabbed-import=. The import will be added and your
 imports re-organized.
 
+* Limitations
+
+This module cannot handle imports with comment interspersed, such as
+
+#+srcname: unorganizable
+#+begin_src c 
+  // This is to include the Foo class.
+  #include "foo.h"                                \
+  // This is is necessary for Bar
+  #include "bar.h"
+#+end_src
+
+If you try and organize or add an import to such a file, it will
+detect the unorganizable imports and throw an error.
+
+However comments on the same line should not pose an issue:
+
+#+srcname: unorganizable
+#+begin_src c 
+  #include "foo.h"  // for Foo
+  #include "bar.h"  // for Bar
+#+end_src
 
 * Future improvements
 
 - Make blank lines explicitly defined in the ordering list.
 - =code-imports-project-directory= should not be needed for Java.
+- Adding support for other languages is not easy.  We need more of a
+  plugin approach.

@@ -212,7 +212,18 @@
                          (code-imports-project-directory "/foo"))
                      (code-imports-organize-imports)
                      (buffer-string)))))
-  (should (equal "import a.B;\n\nclass Foo {\nB;\n}\n"
+  (should (equal (concat "Copyright\n#include \"bar.h\"  // for Bar\n"
+                         "include \"foo.h\"  // for Foo\n")
+                 (with-temp-buffer
+                   (insert
+                    "Copyright\n#include \"foo.h\"  // for Foo\n")
+                   (insert "#include \"bar.h\"\n")
+                   (c++-mode)
+                   (let ((buffer-file-name "/foo/bar/baz.h")
+                         (code-imports-project-directory "/foo"))
+                     (code-imports-organize-imports)
+                     (buffer-string)))))
+  (should (equal "import a.B            ;\n\nclass Foo {\nB;\n}\n"
                  (with-temp-buffer
                    (java-mode)
                    (let ((buffer-file-name "/foo/bar/Baz.java")
