@@ -1,0 +1,94 @@
+* Description
+
+=code-imports= is a module to help you manage code imports. The
+eventual goal is to handle all import-related logic for a variety of
+languages, so as to make developing with emacs faster.
+
+This module is not designed to work with any existing module such as
+=EDE=.
+
+* Dependencies
+
+=code-imports= should work with emacs version 23 and up.  It uses the
+built-in =cl= module, but it doesn't need any other module to be
+installed.
+
+* Languages
+
+Right now, =code-imports= works with:
+  - =C=
+  - =C++=
+  - =Java=
+
+* Usage
+
+To use, install this module somewhere on your =load-path=, and
+put 
+
+#+srcname: imports #+begin_src emacs-lisp    (require 'code-imports)   #+end_src
+
+in your =.emacs= file.
+
+** Organizing imports
+
+To organize imports, this module needs to know how you want your
+imports grouped.  There are two ordering variables used,
+=code-imports-c++-ordering= (which also is used for C), and
+=code-imports-java-ordering=.  The C++ ordering is based off of
+[[http://google-styleguide.googlecode.com/svn/trunk/cppguide.xml][Google's Style Guide]].
+
+The ordering is defined as a list of possible elements, each one
+defining a matching rule:
+  - =self=: The matches the .h file corresponding to the .c file you
+    are editing.
+  - =t=: This matches everything unmatched by another element.
+  - _regex string_: This is a string, which is interpreted as a regex,
+    and is matched against the whole import line.
+
+Between each section a blank line will be inserted.
+
+In Java, =code-imports= will try and remove unused Java classes, but
+it may not removal all.
+
+To organize imports, run =M-x code-imports-organize-imports=.
+
+** Adding imports
+
+*** Defining the root
+
+For =code-imports= to be able to take a file name and make an import
+out of it, we have to know what the root of your project is.  Store
+the root in =code-imports-project-directory=.  For example, if the
+file you want to import is stored at
+=/home/ahyatt/src/project/parser/parser.h=, set
+=code-imports-project-directory= to =/home/ahyatt/src/project=, so
+that the include will be understood as =parser/parser.h=.
+
+If you work on more than one project, use emacs 23 directory
+variables. In your project root, you can define a file called
+=.dir-locals.el= (or whatever your =dir-locals-file= is) and set your
+file there with:
+
+#+srcname: dir-locals
+#+begin_src emacs-lisp
+  ((nil . ((code-imports-project-directory . "/home/ahyatt/src/project"))))
+#+end_src 
+
+
+*** Grabbing imports
+To add imports, first navigate to the file whose import you want to
+add, and run =M-x code-imports-grab-import=.  The import will be
+stored in a clipboard.  There are separate clipboards for Java and
+C++.
+
+*** Adding grabbed imports
+After adding as many files as you need, go to the file in which you
+want to add your imports and run =M-x
+code-imports-add-grabbed-import=. The import will be added and your
+imports re-organized.
+
+
+* Future improvements
+
+- Make blank lines explicitly defined in the ordering list.
+- =code-imports-project-directory= should not be needed for Java.
