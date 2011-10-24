@@ -42,25 +42,6 @@
   (should (code-imports--valid-import-block-line-p "#include \"foo.h\";"))
   (should (code-imports--valid-import-block-line-p "import foo.Bar;")))
 
-(ert-deftest code-imports--import-destination ()
-  (should (equal "foo/bar/baz.h"
-                 (code-imports--import-destination
-                  "#include \"foo/bar/baz.h\"") ))
-  (should-not (code-imports--import-destination "#include <string>"))
-  (should (equal "com/foo/Bar.java"
-                 (code-imports--import-destination
-                  "import com.foo.Bar;")))
-  (should (equal "prefix/com/foo/Bar.java"
-                 (let ((code-imports-finalize-file-fn
-                        (lambda (f) (concat "prefix/" f))))
-                   (code-imports--import-destination
-                    "import com.foo.Bar;"))))
-  (should (equal "prefix/foo/bar/baz.h"
-                 (let ((code-imports-finalize-file-fn
-                        (lambda (f) (concat "prefix/" f))))
-                   (code-imports--import-destination
-                    "#include \"foo/bar/baz.h\"")))))
-
 (ert-deftest code-imports--add-import-to-clipboard ()
   (should (equal '("foo.h")
                  (progn
@@ -84,6 +65,23 @@
                              (buffer-file-name "test/foo.h"))
                          (code-imports-grab-import)
                          (assoc-default 'c-mode code-imports-clipboard)))))))
+  (should (equal '("a.b.C")
+                 (progn
+                   (let ((code-imports-clipboard))
+                     (with-temp-buffer
+                       (let ((major-mode 'java-mode)
+                             (buffer-file-name "C.java"))
+                         (insert "package a.b;\n")
+                         (code-imports-grab-import)
+                         (assoc-default 'java-mode code-imports-clipboard)))))))
+  (should (equal '("C")
+                 (progn
+                   (let ((code-imports-clipboard))
+                     (with-temp-buffer
+                       (let ((major-mode 'java-mode)
+                             (buffer-file-name "C.java"))
+                         (code-imports-grab-import)
+                         (assoc-default 'java-mode code-imports-clipboard)))))))
   (should-error (with-temp-buffer
                   (let ((major-mode 'non-cc-mode))
                     (code-imports-grab-import)))))
@@ -130,10 +128,27 @@
                       "Copyright\n#include \"foo.h\"\n#include \"bar.h\"\n")
                      (cons (code-imports--cut-imports) (buffer-string))))))
   (should (equal (cons
+                  (cons 42 '("#include \"bar.h\"" "#include \"foo.h\""))
+                  "Copyright\n#ifndef BAZ_H\n#define BAZ_H 1\n\n#endif\n")
+                 (with-temp-buffer
+                   (let ((buffer-file-name "baz.h"))
+                     (insert
+                      "Copyright\n#ifndef BAZ_H\n#define BAZ_H 1\n\n")
+                     (insert "#include \"bar.h\"\n#include \"foo.h\"\n#endif\n")
+                     (cons (code-imports--cut-imports) (buffer-string))))))
+  (should (equal (cons
+                  (cons 42 '())
+                  "Copyright\n#ifndef BAZ_H\n#define BAZ_H 1\n\n#endif\n")
+                 (with-temp-buffer
+                   (let ((buffer-file-name "baz.h"))
+                     (insert
+                      "Copyright\n#ifndef BAZ_H\n#define BAZ_H 1\n\n#endif\n")
+                     (cons (code-imports--cut-imports) (buffer-string))))))
+  (should (equal (cons
                   (cons 12 '("import foo.Bar;" "import bar.Baz;"))
                   "Copyright\n\n")
                  (with-temp-buffer
-                   (let ((buffer-file-name "test.cc"))
+                   (let ((buffer-file-name "Test.java"))
                      (insert
                       "Copyright\n\nimport foo.Bar;\nimport bar.Baz;\n")
                      (cons (code-imports--cut-imports) (buffer-string))))))
@@ -141,7 +156,7 @@
                   (cons 11 '("import foo.Bar;" "import bar.Baz;"))
                   "Copyright\n\nclass\n")
                  (with-temp-buffer
-                   (let ((buffer-file-name "test.cc"))
+                   (let ((buffer-file-name "Test.java"))
                      (insert
                       "Copyright\nimport foo.Bar;\nimport bar.Baz;\n\nclass\n")
                      (cons (code-imports--cut-imports) (buffer-string)))))))
@@ -196,11 +211,28 @@
                                             "import a.a.A;")))
 
 (ert-deftest code-imports--add-imports ()
-  (should (equal "Copyright\n#import \"bar.h\"\n#import \"foo.h\"\n"
+  (should (equal "Copyright\n#include \"bar.h\"\n#include \"foo.h\"\n"
                  (with-temp-buffer
-                   (insert "Copyright\n#import \"foo.h\"\n")
-                   (code-imports--add-imports '("bar.h"))
-                   (buffer-string)))))
+                   (let ((buffer-file-name "baz.cc"))
+                     (insert "Copyright\n#include \"foo.h\"\n")
+                     (code-imports--add-imports '("bar.h"))
+                     (buffer-string)))))
+  (should (equal (concat "Copyright\n#ifndef BAZ_H\n#define BAZ_H\n"
+                         "#include \"bar.h\"\n#include \"foo.h\"\n#endif\n")
+                 (with-temp-buffer
+                   (let ((buffer-file-name "baz.h"))
+                     (insert "Copyright\n#ifndef BAZ_H\n#define BAZ_H\n")
+                     (insert "#include \"foo.h\"\n#endif\n")
+                     (code-imports--add-imports '("bar.h"))
+                     (buffer-string)))))
+  (should (equal (concat "Copyright\npackage a.b.C\n\nimport a.Bar;\n"
+                         "import a.Foo;\n\nclass Baz {\n  Bar b\n  Foo f\n}")
+                 (with-temp-buffer
+                   (let ((buffer-file-name "Test.java"))
+                     (insert "Copyright\npackage a.b.C\n\nimport a.Foo;\n\n")
+                     (insert "class Baz {\n  Bar b\n  Foo f\n}")
+                     (code-imports--add-imports '("a/Bar.java"))
+                     (buffer-string))))))
 
 (ert-deftest code-imports-organize-imports ()
   (should (equal "Copyright\n#include \"bar.h\"\n#include \"foo.h\"\n"
@@ -212,8 +244,8 @@
                          (code-imports-project-directory "/foo"))
                      (code-imports-organize-imports)
                      (buffer-string)))))
-  (should (equal (concat "Copyright\n#include \"bar.h\"  // for Bar\n"
-                         "include \"foo.h\"  // for Foo\n")
+  (should (equal (concat "Copyright\n#include \"bar.h\"\n"
+                         "#include \"foo.h\"  // for Foo\n")
                  (with-temp-buffer
                    (insert
                     "Copyright\n#include \"foo.h\"  // for Foo\n")
@@ -223,7 +255,7 @@
                          (code-imports-project-directory "/foo"))
                      (code-imports-organize-imports)
                      (buffer-string)))))
-  (should (equal "import a.B            ;\n\nclass Foo {\nB;\n}\n"
+  (should (equal "import a.B;\n\nclass Foo {\nB;\n}\n"
                  (with-temp-buffer
                    (java-mode)
                    (let ((buffer-file-name "/foo/bar/Baz.java")

@@ -51,7 +51,9 @@
   "A regex matching the root of the project.")
 
 (defvar code-imports-clipboard nil
-  "An alist of modes to import clipboards.")
+  "An alist of modes to import clipboards.
+Each mode stores the clipboard data in whatever format is useful
+for that mode.")
 
 (defconst code-imports-import-regex "^\\(import\\|#include\\)"
   "Regex to identify Java or C++ imports.")
@@ -132,10 +134,20 @@ Use this in conjunction with `code-imports-add-grabbed-import'."
   (interactive)
   (unless (code-imports--is-cc-mode major-mode)
     (error "Must be run from a C++ or Java mode buffer."))
-  (unless code-imports-project-directory
-    (error "code-imports-project-directory must be defined."))
   (code-imports--add-import-to-clipboard
-   (code-imports--make-relative buffer-file-name) major-mode))
+   (cond ((eq major-mode 'java-mode)
+          (code-imports--extract-relative-java-file
+           (buffer-string) buffer-file-name))
+         (t   (unless code-imports-project-directory
+                (error "code-imports-project-directory must be defined."))
+              (code-imports--make-relative buffer-file-name))) major-mode))
+
+(defun code-imports--extract-relative-java-file (buffer-string file-name)
+  (mapconcat 'identity
+             (append
+              (when (string-match "^package \\(.*\\);$" buffer-string)
+                (list (match-string 1 buffer-string)))
+              (list (file-name-nondirectory file-name))) "/"))
 
 (defun code-imports--is-dot-h-file (filename)
   "Return whether FILENAME is a c++ .h file."
@@ -214,6 +226,10 @@ destinations."
             ((code-imports--is-dot-h-file buffer-file-name)
              (re-search-forward "^#define" nil t)
              (forward-line)))
+      ;; If the next line is blank, let's consider that a blank line
+      ;; that will come before the imports.
+      (when (code-imports--blank-line-p (code-imports--current-line))
+        (forward-line))
       (cons (point) nil))))
 
 (defun code-imports--paste-imports (cut-point imports)

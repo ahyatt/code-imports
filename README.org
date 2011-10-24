@@ -124,7 +124,6 @@ However comments on the same line should not pose an issue:
 
 * Future improvements
 
-- Make blank lines explicitly defined in the ordering list.
-- =code-imports-project-directory= should not be needed for Java.
+- Support grouping of regexes in each section (if anyone asks for it).
 - Adding support for other languages is not easy.  We need more of a
   plugin approach.
