@@ -125,7 +125,8 @@ This uses `code-imports-project-directory' as a prefix to look
 for.  If there is no prefix match, we return FILENAME unchanged.
 Advising this function is a reasonable alternative to using
 `code-imports-project-directory'."
-  (replace-regexp-in-string (concat code-imports-project-directory "/?")
+  (replace-regexp-in-string (concat (expand-file-name
+                                     code-imports-project-directory) "/?")
                             "" filename))
 
 (defun code-imports-grab-import ()

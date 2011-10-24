@@ -55,14 +55,26 @@
                      (code-imports--add-import-to-clipboard "bar.h" 'c-mode)
                      (assoc-default 'c-mode code-imports-clipboard))))))
 
+(ert-deftest code-imports--make-relative ()
+  (should (equal "a.h"
+                 (let ((code-imports-project-directory "/test"))
+                   (code-imports--make-relative "/test/a.h"))))
+  (should (equal "a.h"
+                 (let ((code-imports-project-directory "~/src/test"))
+                   (flet ((expand-file-name (file)
+                                            (replace-regexp-in-string
+                                             "~" "/home/ahyatt" file)))
+                     (code-imports--make-relative
+                      "/home/ahyatt/src/test/a.h"))))))
+
 (ert-deftest code-imports-grab-import ()
   (should (equal '("foo.h")
                  (progn
                    (let ((code-imports-clipboard)
-                         (code-imports-project-directory "test"))
+                         (code-imports-project-directory "/test"))
                      (with-temp-buffer
                        (let ((major-mode 'c-mode)
-                             (buffer-file-name "test/foo.h"))
+                             (buffer-file-name "/test/foo.h"))
                          (code-imports-grab-import)
                          (assoc-default 'c-mode code-imports-clipboard)))))))
   (should (equal '("a/b/C.java")
