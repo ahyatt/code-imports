@@ -65,7 +65,7 @@
                              (buffer-file-name "test/foo.h"))
                          (code-imports-grab-import)
                          (assoc-default 'c-mode code-imports-clipboard)))))))
-  (should (equal '("a.b.C")
+  (should (equal '("a/b/C.java")
                  (progn
                    (let ((code-imports-clipboard))
                      (with-temp-buffer
@@ -74,7 +74,7 @@
                          (insert "package a.b;\n")
                          (code-imports-grab-import)
                          (assoc-default 'java-mode code-imports-clipboard)))))))
-  (should (equal '("C")
+  (should (equal '("C.java")
                  (progn
                    (let ((code-imports-clipboard))
                      (with-temp-buffer

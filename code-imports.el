@@ -146,7 +146,8 @@ Use this in conjunction with `code-imports-add-grabbed-import'."
   (mapconcat 'identity
              (append
               (when (string-match "^package \\(.*\\);$" buffer-string)
-                (list (match-string 1 buffer-string)))
+                (list (replace-regexp-in-string "\\." "/"
+                       (match-string 1 buffer-string))))
               (list (file-name-nondirectory file-name))) "/"))
 
 (defun code-imports--is-dot-h-file (filename)
