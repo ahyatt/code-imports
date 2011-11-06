@@ -124,10 +124,11 @@ Argument FN is the filename."
 This uses `code-imports-project-directory' as a prefix to look
 for.  If there is no prefix match, we return FILENAME unchanged.
 Advising this function is a reasonable alternative to using
-`code-imports-project-directory'."
+`code-imports-project-directory', although you still need to set
+that variable."
   (replace-regexp-in-string (concat (expand-file-name
-                                     code-imports-project-directory) "/?")
-                            "" filename))
+                                       code-imports-project-directory) "/?")
+                              "" filename))
 
 (defun code-imports-grab-import ()
   "Grab the current file as an import target.
@@ -174,6 +175,8 @@ Afterwards, organize the imports."
   (interactive)
   (unless (code-imports--is-cc-mode major-mode)
     (error "Must be run from a C++ or Java mode buffer"))
+  (unless (or (eq major-mode 'java-mode) code-imports-project-directory)
+    (error "Need to define `code-imports-project-directory'."))
   (code-imports--detect-unorganizable)
   (let ((clipboard (assoc-default major-mode code-imports-clipboard)))
     (unless clipboard
@@ -264,7 +267,8 @@ The imports are transformed back into lines before pasting."
                code-imports-java-ordering)
               (t
                code-imports-c++-ordering))
-        (code-imports--make-relative (buffer-file-name))))))
+        (unless (eq major-mode 'java-mode)
+            (code-imports--make-relative (buffer-file-name)))))))
 
 (defun code-imports--import-in-group-p (import-line group &optional self-file)
   "Returns t if IMPORT-LINE is in GROUP.
@@ -320,6 +324,8 @@ cc-mode).  Otherwise SELF-FILE is nil."
   (interactive)
   (unless (code-imports--is-cc-mode major-mode)
     (error "Must be run from a C++ or Java mode buffer"))
+  (unless (or (eq major-mode 'java-mode) code-imports-project-directory)
+    (error "Need to define `code-imports-project-directory'."))
   (code-imports--detect-unorganizable)
   (code-imports--add-imports '()))
 

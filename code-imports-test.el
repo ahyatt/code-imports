@@ -109,12 +109,19 @@
                   (code-imports-add-grabbed-imports)))
   ;; Should error when no clipboard data found.
   (should-error (with-temp-buffer
-                  (let ((code-imports-clipboard))
+                  (let ((code-imports-project-directory "foo")
+                        (code-imports-clipboard))
                     (c-mode)
                     (code-imports-add-grabbed-imports))))
   (should-error (with-temp-buffer
                   (let ((major-mode 'c-mode)
+                        (code-imports-project-directory)
+                        (code-imports-clipboard '((c-mode "foo.h"))))
+                    (code-imports-add-grabbed-imports))))
+  (should-error (with-temp-buffer
+                  (let ((major-mode 'c-mode)
                         (code-imports-clipboard '((c-mode "foo.h")))
+                        (code-imports-project-directory "")
                         (arg))
                     (c-mode)
                     (insert "#ifdef FOO\n#include \"bar.h\"\n#endif\n")
@@ -123,6 +130,7 @@
               (with-temp-buffer
                 (let ((major-mode 'c-mode)
                       (code-imports-clipboard '((c-mode "foo.h")))
+                      (code-imports-project-directory "")
                       (arg))
                   (flet ((code-imports--add-imports (imports)
                                                     (setq arg imports)))
@@ -225,14 +233,16 @@
 (ert-deftest code-imports--add-imports ()
   (should (equal "Copyright\n#include \"bar.h\"\n#include \"foo.h\"\n"
                  (with-temp-buffer
-                   (let ((buffer-file-name "baz.cc"))
+                   (let ((buffer-file-name "baz.cc")
+                         (code-imports-project-directory ""))
                      (insert "Copyright\n#include \"foo.h\"\n")
                      (code-imports--add-imports '("bar.h"))
                      (buffer-string)))))
   (should (equal (concat "Copyright\n#ifndef BAZ_H\n#define BAZ_H\n"
                          "#include \"bar.h\"\n#include \"foo.h\"\n#endif\n")
                  (with-temp-buffer
-                   (let ((buffer-file-name "baz.h"))
+                   (let ((buffer-file-name "baz.h")
+                         (code-imports-project-directory ""))
                      (insert "Copyright\n#ifndef BAZ_H\n#define BAZ_H\n")
                      (insert "#include \"foo.h\"\n#endif\n")
                      (code-imports--add-imports '("bar.h"))
@@ -240,7 +250,8 @@
   (should (equal (concat "Copyright\npackage a.b.C\n\nimport a.Bar;\n"
                          "import a.Foo;\n\nclass Baz {\n  Bar b\n  Foo f\n}")
                  (with-temp-buffer
-                   (let ((buffer-file-name "Test.java"))
+                   (let ((buffer-file-name "Test.java")
+                         (code-imports-project-directory ""))
                      (insert "Copyright\npackage a.b.C\n\nimport a.Foo;\n\n")
                      (insert "class Baz {\n  Bar b\n  Foo f\n}")
                      (code-imports--add-imports '("a/Bar.java"))
@@ -274,7 +285,11 @@
                          (code-imports-project-directory "/foo"))
                      (insert "import a.B;\nimport a.A\n\nclass Foo {\nB;\n}\n")
                      (code-imports-organize-imports)
-                     (buffer-string))))))
+                     (buffer-string)))))
+  (should-error (with-temp-buffer
+                  (let ((code-imports-project-directory))
+                    (c-mode)
+                    (code-imports-organize-imports)))))
 
 (ert-deftest code-imports-unused-import-p ()
   (should-not (with-temp-buffer
