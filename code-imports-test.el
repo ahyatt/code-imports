@@ -98,12 +98,6 @@
                   (let ((major-mode 'non-cc-mode))
                     (code-imports-grab-import)))))
 
-(ert-deftest code-imports--format-include ()
-  (should (equal "#include \"foo.h\""
-                 (code-imports--format-include "foo.h")))
-  (should (equal "#include <string>"
-                 (code-imports--format-include "<string>"))))
-
 (ert-deftest code-imports-add-grabbed-imports ()
   (should-error (with-temp-buffer
                   (code-imports-add-grabbed-imports)))

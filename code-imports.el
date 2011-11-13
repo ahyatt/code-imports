@@ -156,19 +156,6 @@ Use this in conjunction with `code-imports-add-grabbed-import'."
   "Return whether FILENAME is a c++ .h file."
   (string-match "\.h$" (buffer-file-name)))
 
-(defun code-imports--format-include (import)
-  "Format the include line for IMPORT.
-If the import is for a
-system header (as indicated being wrapped by angle-brackets) then
-the include uses angle-brackets.  Otherwise, quotes are used.
-
-This function only formats c-style #include lines -- it is not used for Java
-imports."
-  (concat "#include "
-          (if (string-match "^<.*>$" import)
-              import
-              (concat "\"" import "\""))))
-
 (defun code-imports-add-grabbed-imports ()
   "Add the grabbed imports to the current file's imports.
 Afterwards, organize the imports."
