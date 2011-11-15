@@ -86,7 +86,6 @@ file there with:
   ((nil . ((code-imports-project-directory . "/home/ahyatt/src/project"))))
 #+end_src 
 
-
 *** Grabbing imports
 To add imports, first navigate to the file whose import you want to
 add, and run =M-x code-imports-grab-import=.  The import will be
