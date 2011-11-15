@@ -281,7 +281,8 @@
                      (code-imports-organize-imports)
                      (buffer-string)))))
   (should-error (with-temp-buffer
-                  (let ((code-imports-project-directory))
+                  (let ((code-imports-project-directory)
+                        (buffer-file-name "/foo/bar/baz.h"))
                     (c-mode)
                     (code-imports-organize-imports)))))
 
@@ -302,5 +303,18 @@
                 (insert "class Foo {\n Bar b;\n}\n")
                 (code-imports-unused-import-p "import Bar;"))))
 
+(ert-deftest code-imports-line-to-relative-file ()
+  (should (equal "bar/baz.h" (code-imports-line-to-relative-file
+                              "#include \"bar/baz.h\"")))
+  (should-not (code-imports-line-to-relative-file "#include <string>")))
+
+(ert-deftest code-import--guess-import-root ()
+  (flet ((file-exists-p (file) (equal file "/foo/bar/bar.h")))
+    (should (equal "/foo/bar/"
+                   (code-imports--guess-import-root "/foo/bar/baz.h"
+                                                      '("bar.h"))))
+    (should (equal "/foo/"
+                   (code-imports--guess-import-root "/foo/foo/baz.h"
+                                                    '("bar/bar.h"))))))
 
 ;;; code-imports-test.el ends here

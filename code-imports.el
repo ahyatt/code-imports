@@ -119,6 +119,30 @@ Argument FN is the filename."
   (setf (cdr (assoc mode code-imports-clipboard))
         (cons file (assoc-default mode code-imports-clipboard))))
 
+(defun code-imports-line-to-relative-file (import-line)
+  "Extrace the relative file name from an import line.
+Currently this does not work for Java.  If the relative
+file cannot be deduced, we return NIL."
+  (when (string-match "\"\\(.*\\)\"" import-line)
+    (match-string 1 import-line)))
+
+(defun code-imports--guess-import-root (filename import-files)
+  "Return the root for FILENAME, given IMPORT-FILES.
+If the import root directory cannot be guessed, return nil.
+This will not work for Java."
+  (dolist (import import-files)
+    (when import
+      ;; Check to see if the import has the same root as FILENAME
+      (let ((current-dir (file-name-directory filename)))
+        (while (not (equal current-dir "/"))
+          (if (file-exists-p (concat current-dir
+                                     (if (string-match "/\\'" current-dir) "" "/")
+                                     import))
+              (return (if (string-match "/\\'" current-dir)
+                          current-dir
+                        (concat current-dir "/"))))
+          (setq current-dir (file-truename (concat current-dir "/.."))))))))
+
 (defun code-imports--make-relative (filename)
   "Make a FILENAME into a project-relative path.
 This uses `code-imports-project-directory' as a prefix to look
@@ -140,9 +164,10 @@ Use this in conjunction with `code-imports-add-grabbed-import'."
    (cond ((eq major-mode 'java-mode)
           (code-imports--extract-relative-java-file
            (buffer-string) buffer-file-name))
-         (t   (unless code-imports-project-directory
-                (error "code-imports-project-directory must be defined."))
-              (code-imports--make-relative buffer-file-name))) major-mode))
+         (t
+          (unless code-imports-project-directory
+            (error "code-imports-project-directory must be defined."))
+            (code-imports--make-relative buffer-file-name))) major-mode))
 
 (defun code-imports--extract-relative-java-file (buffer-string file-name)
   (mapconcat 'identity
@@ -255,7 +280,15 @@ The imports are transformed back into lines before pasting."
               (t
                code-imports-c++-ordering))
         (unless (eq major-mode 'java-mode)
-            (code-imports--make-relative (buffer-file-name)))))))
+          (let ((code-imports-project-directory
+                 (or code-imports-project-directory
+                     (code-imports--guess-import-root
+                      (buffer-file-name)
+                      (mapcar 'code-imports-line-to-relative-file
+                              existing-imports)))))
+            (unless code-imports-project-directory
+              (error "code-imports-project-directory not defined or guessable"))
+            (code-imports--make-relative (buffer-file-name))))))))
 
 (defun code-imports--import-in-group-p (import-line group &optional self-file)
   "Returns t if IMPORT-LINE is in GROUP.
@@ -311,8 +344,6 @@ cc-mode).  Otherwise SELF-FILE is nil."
   (interactive)
   (unless (code-imports--is-cc-mode major-mode)
     (error "Must be run from a C++ or Java mode buffer"))
-  (unless (or (eq major-mode 'java-mode) code-imports-project-directory)
-    (error "Need to define `code-imports-project-directory'."))
   (code-imports--detect-unorganizable)
   (code-imports--add-imports '()))
 
